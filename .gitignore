@@ -1,0 +1,41 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Node / 前端 ----------
+node_modules/
+frontend/dist/
+npm-debug.log*
+yarn-error.log*
+
+# ---------- 数据库（含真实账本数据，禁止提交） ----------
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+backend/ledger.db*
+
+# ---------- 构建 / 部署产物 ----------
+*.zip
+*.log
+*.tmp
+
+# ---------- 环境变量（本地私密配置） ----------
+.env
+.env.local
+.env.*.local
+
+# ---------- IDE / 系统 ----------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,479 @@
+{
+  "total": 59,
+  "passed": 59,
+  "failed": 0,
+  "results": [
+    {
+      "id": "P-00",
+      "goal": "全部保留月份未被业务数据占用（保证测试可复现、可清理）",
+      "input": "GET /api/transactions?month=2000-12,2001-01,2001-02,2001-03,2001-04,2001-05,2001-06",
+      "expected": "全部 200 且 data=[]",
+      "actual": "被占用的月份=无",
+      "passed": true
+    },
+    {
+      "id": "C-01",
+      "goal": "分类列表全量查询 + 排序（type 升序、expense 组在前）",
+      "input": "GET /api/categories",
+      "expected": "200/0，数组，含 13 条预置分类，expense 组在前",
+      "actual": "HTTP 200, code=0, 条数=13, 首条 type=expense, 末条 type=income",
+      "passed": true
+    },
+    {
+      "id": "C-02",
+      "goal": "按 type 过滤分类（income）",
+      "input": "GET /api/categories?type=income",
+      "expected": "200/0，5 条（预置收入分类）",
+      "actual": "HTTP 200, code=0, 条数=5, 全为 income=True",
+      "passed": true
+    },
+    {
+      "id": "C-03",
+      "goal": "按 type 过滤分类（expense）",
+      "input": "GET /api/categories?type=expense",
+      "expected": "200/0，8 条（预置支出分类）",
+      "actual": "HTTP 200, code=0, 条数=8",
+      "passed": true
+    },
+    {
+      "id": "C-04",
+      "goal": "分类查询 type 非法",
+      "input": "GET /api/categories?type=bad",
+      "expected": "1001 / HTTP 400 参数不合法",
+      "actual": "HTTP 400, code=1001, message=参数不合法",
+      "passed": true
+    },
+    {
+      "id": "C-05",
+      "goal": "新增支出分类（名称首尾空格应被去除）",
+      "input": "POST /api/categories  body={name:'  TMP支出A_1792508980  ', type:'expense'}",
+      "expected": "200/0，name 去空格后写入",
+      "actual": "HTTP 200, code=0, id=14, name='TMP支出A_1792508980'",
+      "passed": true
+    },
+    {
+      "id": "C-06",
+      "goal": "新增收入分类",
+      "input": "POST /api/categories  body={name:'TMP收入_1792508980', type:'income'}",
+      "expected": "200/0，返回 id/name/type",
+      "actual": "HTTP 200, code=0, id=15, type=income",
+      "passed": true
+    },
+    {
+      "id": "C-07",
+      "goal": "同类型下分类重名（E-09）",
+      "input": "POST /api/categories  body={name:'TMP收入_1792508980', type:'income'}（重复）",
+      "expected": "1009 / HTTP 409 该分类已存在",
+      "actual": "HTTP 409, code=1009, message=该分类已存在",
+      "passed": true
+    },
+    {
+      "id": "C-08",
+      "goal": "分类名称为空（E-10）",
+      "input": "POST /api/categories  body={name:'   ', type:'expense'}",
+      "expected": "1001 / HTTP 400 分类名称不合法",
+      "actual": "HTTP 400, code=1001, message=分类名称不合法",
+      "passed": true
+    },
+    {
+      "id": "C-09",
+      "goal": "分类名称超长 21 码点（E-10）",
+      "input": "POST /api/categories  body={name:'超'*21, type:'expense'}",
+      "expected": "1001 / HTTP 400 分类名称不合法",
+      "actual": "HTTP 400, code=1001, message=分类名称不合法",
+      "passed": true
+    },
+    {
+      "id": "C-10",
+      "goal": "不同类型下同名分类允许（唯一约束范围为 (name,type)）",
+      "input": "POST /api/categories  同名 'TMP同名_1792508980' 分别 type=expense / income",
+      "expected": "两次均 200/0",
+      "actual": "expense: HTTP 200/code 0；income: HTTP 200/code 0",
+      "passed": true
+    },
+    {
+      "id": "C-11",
+      "goal": "新增分类 type 非法",
+      "input": "POST /api/categories  body={name:'非法类型', type:'other'}",
+      "expected": "1001 / HTTP 400",
+      "actual": "HTTP 400, code=1001, message=参数不合法",
+      "passed": true
+    },
+    {
+      "id": "C-12",
+      "goal": "删除不存在的分类（E-17）",
+      "input": "DELETE /api/categories/999999",
+      "expected": "1007 / HTTP 404 分类不存在",
+      "actual": "HTTP 404, code=1007, message=分类不存在",
+      "passed": true
+    },
+    {
+      "id": "C-13",
+      "goal": "删除存在账单引用的分类（E-11，应用层 + RESTRICT 双保险）",
+      "input": "DELETE /api/categories/14（该分类已被 1 条账单引用）",
+      "expected": "1010 / HTTP 409 该分类下存在记录，无法删除",
+      "actual": "HTTP 409, code=1010, message=该分类下存在记录，无法删除",
+      "passed": true
+    },
+    {
+      "id": "C-14",
+      "goal": "删除无引用的分类",
+      "input": "POST 新建 'TMP可删_1792508980' 后 DELETE /api/categories/18",
+      "expected": "新建 200/0；删除 200/0，data=null",
+      "actual": "新建 HTTP 200/code 0；删除 HTTP 200/code 0, data=None",
+      "passed": true
+    },
+    {
+      "id": "T-01",
+      "goal": "新增账单（正常支出）",
+      "input": "POST /api/transactions  body={amount:33.33, type:expense, category_id:14, date:'2001-06-05', note:'午餐'}",
+      "expected": "200/0，amount=33.33，date=2001-06-05，字段回显正确（元）",
+      "actual": "HTTP 200, code=0, data={\"id\": 2, \"amount\": 33.33, \"type\": \"expense\", \"category_id\": 14, \"date\": \"2001-06-05\", \"note\": \"午餐\"}",
+      "passed": true
+    },
+    {
+      "id": "T-02",
+      "goal": "按月查询账单列表",
+      "input": "GET /api/transactions?month=2001-06",
+      "expected": "200/0，data 为数组且包含刚新增记录",
+      "actual": "HTTP 200, code=0, 条数=2, 含 id=2: True",
+      "passed": true
+    },
+    {
+      "id": "T-07",
+      "goal": "列表项不含 category_name（字段严格对齐 spec §6.2）",
+      "input": "GET /api/transactions?month=2001-06",
+      "expected": "数组元素仅含 id/amount/type/category_id/date/note",
+      "actual": "实际字段=['amount', 'category_id', 'date', 'id', 'note', 'type']",
+      "passed": true
+    },
+    {
+      "id": "T-03",
+      "goal": "编辑账单（PUT 全量覆盖）",
+      "input": "PUT /api/transactions/2  body={amount:45.00, date:'2001-06-06', note:'午餐（改）'}",
+      "expected": "200/0，amount=45.00、date=2001-06-06、note 已更新",
+      "actual": "HTTP 200, code=0, data={\"id\": 2, \"amount\": 45.0, \"type\": \"expense\", \"category_id\": 14, \"date\": \"2001-06-06\", \"note\": \"午餐（改）\"}",
+      "passed": true
+    },
+    {
+      "id": "T-04",
+      "goal": "编辑不存在的记录（E-12）",
+      "input": "PUT /api/transactions/999999",
+      "expected": "1008 / HTTP 404 记录不存在",
+      "actual": "HTTP 404, code=1008, message=记录不存在",
+      "passed": true
+    },
+    {
+      "id": "T-06",
+      "goal": "删除不存在的记录（E-12）",
+      "input": "DELETE /api/transactions/999999",
+      "expected": "1008 / HTTP 404 记录不存在",
+      "actual": "HTTP 404, code=1008, message=记录不存在",
+      "passed": true
+    },
+    {
+      "id": "T-08",
+      "goal": "列表排序 date DESC, id DESC（R-12）",
+      "input": "GET /api/transactions?month=2001-06（含 2 条同日记录 id=3/4）",
+      "expected": "整体按 date 降序；同日按 id 降序",
+      "actual": "整体降序=True, 同日 id 顺序=[4, 3]",
+      "passed": true
+    },
+    {
+      "id": "T-09",
+      "goal": "新增账单缺少必填字段 amount（E-03）",
+      "input": "POST /api/transactions  body={type, category_id, date}（无 amount）",
+      "expected": "1001 / HTTP 400 参数不合法",
+      "actual": "HTTP 400, code=1001, message=参数不合法",
+      "passed": true
+    },
+    {
+      "id": "T-10",
+      "goal": "新增账单 type 非法",
+      "input": "POST /api/transactions  body={amount:1.00, type:'other', ...}",
+      "expected": "1001 / HTTP 400 参数不合法",
+      "actual": "HTTP 400, code=1001, message=参数不合法",
+      "passed": true
+    },
+    {
+      "id": "T-11",
+      "goal": "新增账单引用不存在的分类（E-05）",
+      "input": "POST /api/transactions  body={category_id:999999, ...}",
+      "expected": "1007 / HTTP 404 分类不存在",
+      "actual": "HTTP 404, code=1007, message=分类不存在",
+      "passed": true
+    },
+    {
+      "id": "T-12",
+      "goal": "新增账单类型与分类类型不一致（E-04）",
+      "input": "POST /api/transactions  body={type:'income', category_id:14(expense)}",
+      "expected": "1006 / HTTP 400 分类类型与收支类型不一致",
+      "actual": "HTTP 400, code=1006, message=分类类型与收支类型不一致",
+      "passed": true
+    },
+    {
+      "id": "T-13",
+      "goal": "POST 与 PUT 复用同一校验（AC-24：同输入同错误码）",
+      "input": "POST 与 PUT 均提交 amount=0",
+      "expected": "两者返回相同 code（1002）",
+      "actual": "POST → HTTP 400/code 1002；PUT → HTTP 400/code 1002",
+      "passed": true
+    },
+    {
+      "id": "T-05",
+      "goal": "删除账单",
+      "input": "DELETE /api/transactions/2",
+      "expected": "200/0，data=null",
+      "actual": "HTTP 200, code=0, data=None",
+      "passed": true
+    },
+    {
+      "id": "A-01",
+      "goal": "金额为 0（E-01）",
+      "input": "POST /api/transactions  body={amount:0, ...}",
+      "expected": "400/1002 金额不合法",
+      "actual": "HTTP 400, code=1002, message=金额不合法",
+      "passed": true
+    },
+    {
+      "id": "A-02",
+      "goal": "金额为负（E-01）",
+      "input": "POST /api/transactions  body={amount:-5, ...}",
+      "expected": "400/1002 金额不合法",
+      "actual": "HTTP 400, code=1002, message=金额不合法",
+      "passed": true
+    },
+    {
+      "id": "A-03",
+      "goal": "金额 3 位小数（E-01）",
+      "input": "POST /api/transactions  body={amount:0.001, ...}",
+      "expected": "400/1002 金额不合法",
+      "actual": "HTTP 400, code=1002, message=金额不合法",
+      "passed": true
+    },
+    {
+      "id": "A-04",
+      "goal": "金额非数字（E-01）",
+      "input": "POST /api/transactions  body={amount:abc, ...}",
+      "expected": "400/1002 金额不合法",
+      "actual": "HTTP 400, code=1002, message=金额不合法",
+      "passed": true
+    },
+    {
+      "id": "A-07",
+      "goal": "金额超上限 100,000,000（E-02）",
+      "input": "POST /api/transactions  body={amount:100000000, ...}",
+      "expected": "400/1003 金额超出允许范围",
+      "actual": "HTTP 400, code=1003, message=金额超出允许范围",
+      "passed": true
+    },
+    {
+      "id": "A-08a",
+      "goal": "amount 字段缺失（E-03 必填缺失）",
+      "input": "POST /api/transactions  body={amount:<字段缺失>, ...}",
+      "expected": "400/1001 参数不合法",
+      "actual": "HTTP 400, code=1001, message=参数不合法",
+      "passed": true
+    },
+    {
+      "id": "A-08b",
+      "goal": "amount 显式传 null（E-01 金额为空）",
+      "input": "POST /api/transactions  body={amount:None, ...}",
+      "expected": "400/1002 金额不合法",
+      "actual": "HTTP 400, code=1002, message=金额不合法",
+      "passed": true
+    },
+    {
+      "id": "A-06",
+      "goal": "金额取上限 99,999,999.99 应成功",
+      "input": "POST /api/transactions  body={amount:99999999.99, ...}",
+      "expected": "200/0，amount 回显 99999999.99",
+      "actual": "HTTP 200, code=0, amount=99999999.99",
+      "passed": true
+    },
+    {
+      "id": "A-05",
+      "goal": "金额元/分转换精度（AC-20：33.33 → 3333 分 → 33.33）",
+      "input": "POST /api/transactions  body={amount:33.33, ...}",
+      "expected": "200/0，amount 精确回显 33.33（无浮点误差）",
+      "actual": "HTTP 200, amount=33.33",
+      "passed": true
+    },
+    {
+      "id": "D-01",
+      "goal": "日期非补零格式（R-19）",
+      "input": "POST /api/transactions  body={date:'2001-2-5', ...}",
+      "expected": "1004 / HTTP 400 日期不合法",
+      "actual": "HTTP 400, code=1004, message=日期不合法",
+      "passed": true
+    },
+    {
+      "id": "D-02",
+      "goal": "日期早于 2000-01-01（R-24）",
+      "input": "POST /api/transactions  body={date:'1999-12-31', ...}",
+      "expected": "1004 / HTTP 400 日期不合法",
+      "actual": "HTTP 400, code=1004, message=日期不合法",
+      "passed": true
+    },
+    {
+      "id": "D-03",
+      "goal": "日期晚于今天",
+      "input": "POST /api/transactions  body={date:'2099-01-01', ...}",
+      "expected": "1004 / HTTP 400 日期不合法",
+      "actual": "HTTP 400, code=1004, message=日期不合法",
+      "passed": true
+    },
+    {
+      "id": "N-01",
+      "goal": "备注超长 101 码点（E-08）",
+      "input": "POST /api/transactions  body={note:'备'*101, ...}",
+      "expected": "1001 / HTTP 400 备注长度超限",
+      "actual": "HTTP 400, code=1001, message=备注长度超限",
+      "passed": true
+    },
+    {
+      "id": "N-02",
+      "goal": "备注恰好 100 码点应成功",
+      "input": "POST /api/transactions  body={note:'备'*100, ...}",
+      "expected": "200/0",
+      "actual": "HTTP 200, code=0, note 长度=100",
+      "passed": true
+    },
+    {
+      "id": "M-01",
+      "goal": "账单列表月份 13 非法（R-09）",
+      "input": "GET /api/transactions?month=2026-13",
+      "expected": "1005 / HTTP 400 月份不合法",
+      "actual": "HTTP 400, code=1005, message=月份不合法",
+      "passed": true
+    },
+    {
+      "id": "M-02",
+      "goal": "账单列表月份非补零非法（R-09）",
+      "input": "GET /api/transactions?month=2026-1",
+      "expected": "1005 / HTTP 400 月份不合法",
+      "actual": "HTTP 400, code=1005, message=月份不合法",
+      "passed": true
+    },
+    {
+      "id": "M-03",
+      "goal": "报表月份 13 非法（E-07）",
+      "input": "GET /api/reports/monthly?month=2026-13",
+      "expected": "1005 / HTTP 400 月份不合法",
+      "actual": "HTTP 400, code=1005, message=月份不合法",
+      "passed": true
+    },
+    {
+      "id": "M-04",
+      "goal": "报表月份格式非法（E-07）",
+      "input": "GET /api/reports/monthly?month=abc",
+      "expected": "1005 / HTTP 400 月份不合法",
+      "actual": "HTTP 400, code=1005, message=月份不合法",
+      "passed": true
+    },
+    {
+      "id": "R-01",
+      "goal": "月度收入总额（spec §7.6）",
+      "input": "GET /api/reports/monthly?month=2001-02",
+      "expected": "total_income = 300.00",
+      "actual": "HTTP 200, total_income=300.0",
+      "passed": true
+    },
+    {
+      "id": "R-02",
+      "goal": "月度支出总额（spec §7.6）",
+      "input": "GET /api/reports/monthly?month=2001-02",
+      "expected": "total_expense = 200.00",
+      "actual": "total_expense=200.0",
+      "passed": true
+    },
+    {
+      "id": "R-03",
+      "goal": "月度结余 = 收入 − 支出（spec §7.6）",
+      "input": "GET /api/reports/monthly?month=2001-02",
+      "expected": "balance = 100.00",
+      "actual": "balance=100.0（= 300.0 - 200.0）",
+      "passed": true
+    },
+    {
+      "id": "R-04",
+      "goal": "支出分类统计与占比（后端唯一计算，按 amount 降序，R-21）",
+      "input": "GET /api/reports/monthly?month=2001-02",
+      "expected": "2 项，各 100.00 / 50.00%，按金额降序，percentage 之和 = 100.00",
+      "actual": "明细=[{\"category_id\": 14, \"category_name\": \"TMP支出A_1792508980\", \"amount\": 100.0, \"percentage\": 50.0}, {\"category_id\": 19, \"category_name\": \"TMP支出B_1792508980\", \"amount\": 100.0, \"percentage\": 50.0}], 占比之和=100.0",
+      "passed": true
+    },
+    {
+      "id": "R-05",
+      "goal": "占比不出现 NaN 且合计落在 99.99–100.01（R-10）",
+      "input": "GET /api/reports/monthly?month=2001-02",
+      "expected": "合计 ∈ [99.99, 100.01]",
+      "actual": "合计=100.0",
+      "passed": true
+    },
+    {
+      "id": "R-06",
+      "goal": "负结余正确返回（AC-22、R-22）",
+      "input": "GET /api/reports/monthly?month=2001-05（仅 50.00 支出）",
+      "expected": "total_income=0.00, total_expense=50.00, balance=-50.00",
+      "actual": "income=0.0, expense=50.0, balance=-50.0",
+      "passed": true
+    },
+    {
+      "id": "R-07",
+      "goal": "跨年月份区间不混入相邻年份（AC-17、R-05）",
+      "input": "2000-12-31 记 10.00；2001-01-01 记 20.00，分别查询 2000-12 / 2001-01",
+      "expected": "2000-12: income=10.00；2001-01: income=20.00",
+      "actual": "2000-12 income=10.0；2001-01 income=20.0",
+      "passed": true
+    },
+    {
+      "id": "E-01",
+      "goal": "空月份报表（E-13：正常返回 0 值）",
+      "input": "GET /api/reports/monthly?month=2001-03",
+      "expected": "200/0，三项为 0.00，expense_by_category=[]",
+      "actual": "HTTP 200, code=0, data={\"month\": \"2001-03\", \"total_income\": 0.0, \"total_expense\": 0.0, \"balance\": 0.0, \"expense_by_category\": []}",
+      "passed": true
+    },
+    {
+      "id": "E-02",
+      "goal": "空月份账单列表（E-13、AC-26：data 恒为数组）",
+      "input": "GET /api/transactions?month=2001-03",
+      "expected": "200/0，data=[]",
+      "actual": "HTTP 200, code=0, data=[]",
+      "passed": true
+    },
+    {
+      "id": "F-01",
+      "goal": "互斥筛选：type 与 category_id 矛盾（AC-27 / R-03）",
+      "input": "GET /api/transactions?month=2001-06&type=income&category_id=14(expense)",
+      "expected": "200/0，data=[]（不返回 1006/1007）",
+      "actual": "HTTP 200, code=0, data=[]",
+      "passed": true
+    },
+    {
+      "id": "F-02",
+      "goal": "category_id 指向不存在分类（不校验存在性，返回空数组）",
+      "input": "GET /api/transactions?month=2001-06&category_id=999999",
+      "expected": "200/0，data=[]",
+      "actual": "HTTP 200, code=0, data=[]",
+      "passed": true
+    },
+    {
+      "id": "I-01",
+      "goal": "开发环境 CORS：允许前端源 http://localhost:5173（spec §8）",
+      "input": "GET /api/health  Header: Origin: http://localhost:5173",
+      "expected": "响应头含 access-control-allow-origin = http://localhost:5173",
+      "actual": "HTTP 200, access-control-allow-origin='http://localhost:5173'",
+      "passed": true
+    },
+    {
+      "id": "I-02",
+      "goal": "非白名单源不返回 CORS 许可",
+      "input": "GET /api/health  Header: Origin: http://evil.example.com",
+      "expected": "响应头不含 access-control-allow-origin",
+      "actual": "HTTP 200, access-control-allow-origin=None",
+      "passed": true
+    }
+  ]
+}

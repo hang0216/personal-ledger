@@ -1,0 +1,98 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  /* spec §11 兼容性：1280px 及以上宽度正常显示 */
+  min-width: 1280px;
+  background-color: #f5f7fa;
+  color: var(--el-text-color-primary);
+  font-family:
+    'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    Arial, sans-serif;
+  font-size: 14px;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.app-main {
+  flex: 1;
+  padding: 20px 24px;
+}
+
+.page__title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.page__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.page__bar .page__title {
+  margin-bottom: 0;
+}
+
+.page__alert {
+  margin-bottom: 16px;
+}
+
+.page__body {
+  min-height: 200px;
+}
+
+.page__footer {
+  margin-top: 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  text-align: right;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.section-title {
+  margin: 24px 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pie-row {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 24px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
+}
+
+.pie-row__chart {
+  min-width: 0;
+}
+
+.pie-row__list {
+  min-width: 0;
+}
+
+.dashboard {
+  min-height: 320px;
+}

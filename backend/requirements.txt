@@ -1,0 +1,10 @@
+# 个人记账本后端依赖（MVP-1）
+# 安装：pip install -r requirements.txt
+# 说明：使用 >= 约束以便在 Python 3.10+（含较新版本）上解析到可用 wheel，
+#       不引入 Redis / Docker / 其他数据库等额外依赖（architecture §14）。
+
+fastapi>=0.115
+uvicorn[standard]>=0.32
+SQLAlchemy>=2.0.36
+# Windows 不自带 IANA 时区数据库，zoneinfo 需要 tzdata 才能解析 Asia/Shanghai（spec §8 R-06）
+tzdata>=2024.1

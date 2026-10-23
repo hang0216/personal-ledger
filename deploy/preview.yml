@@ -1,0 +1,8 @@
+# CloudStudio 运行配置模板
+# 使用方法：上传项目后，将本文件复制为 .vscode/preview.yml
+autoOpen: true
+apps:
+  - name: personal-ledger
+    port: 8000
+    root: ./
+    run: bash deploy/cloudstudio-start.sh
